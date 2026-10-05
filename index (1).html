@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<title>دار — موقع العائلة</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#f4f6f5;--card:#fff;--tx:#10201d;--mu:#667873;--ac:#0f766e;--ac2:#f59e0b;--bd:#dde5e2;--dg:#dc2626;--ok:#16a34a}
+:root[data-t=dark]{--bg:#0b1412;--card:#13211e;--tx:#e8f1ee;--mu:#8ba39d;--ac:#2dd4bf;--bd:#223632}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 Tajawal,"Segoe UI",Tahoma,sans-serif;background:var(--bg);color:var(--tx);height:100dvh;overflow:hidden}
+#root{height:100%;display:flex;flex-direction:column}
+main{flex:1;position:relative;min-height:0}
+.view{position:absolute;inset:0}.page{overflow:auto;padding:16px 16px 24px;display:none}
+#map{position:absolute;inset:0}
+[data-t=dark] .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9)}
+.leaflet-top{top:64px}
+nav{display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;background:none;color:var(--mu);padding:8px 0;font:inherit;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+nav button i{font-style:normal;font-size:20px}nav button.on{color:var(--ac);font-weight:700}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px;margin-bottom:12px}
+.center{height:100%;display:grid;place-items:center;padding:16px;overflow:auto}.center .card{width:min(380px,100%);text-align:center}
+h2{margin:0 0 4px;font-size:20px}h3{margin:0 0 8px}
+input,select{width:100%;padding:12px;margin:6px 0;border:1px solid var(--bd);border-radius:12px;background:var(--bg);color:var(--tx);font:inherit}
+.btn{border:0;background:var(--ac);color:var(--bg);padding:11px 16px;border-radius:12px;font:inherit;font-weight:700;cursor:pointer}
+[data-t=light] .btn,:root:not([data-t]) .btn{color:#fff}
+.btn.alt{background:transparent;color:var(--ac);border:1px solid var(--ac)}.btn.danger{background:var(--dg);color:#fff}.btn.sm{padding:5px 10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.row .btn{flex:1}
+.mu{color:var(--mu);font-size:13px}.grow{flex:1;min-width:0}
+.hdr{display:flex;gap:12px;align-items:center}
+.mrow{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd);cursor:pointer}.mrow:last-child{border:0}
+.av{border-radius:50%;object-fit:cover;display:inline-grid;place-items:center;color:#fff;font-weight:700;flex:none}
+.badge{background:var(--ac2);color:#222;border-radius:8px;padding:0 6px;font-size:11px}
+.search{position:absolute;top:10px;inset-inline:10px;z-index:500}
+.search input{box-shadow:0 2px 10px #0003;margin:0;border-radius:14px;background:var(--card)}
+#res{background:var(--card);border-radius:12px;margin-top:4px;overflow:hidden}#res div{padding:10px 12px;border-bottom:1px solid var(--bd);cursor:pointer;font-size:13px}
+.chips{position:absolute;bottom:10px;inset-inline:0;z-index:500;display:flex;gap:8px;overflow-x:auto;padding:0 10px}
+.chip{flex:none;background:var(--card);border:1px solid var(--bd);border-radius:24px;padding:4px 12px 4px 4px;display:flex;gap:8px;align-items:center;cursor:pointer;box-shadow:0 2px 8px #0003}
+.chip.dim{opacity:.55}
+.pin{border:3px solid var(--mu);border-radius:50%;background:var(--card);width:46px;height:46px;display:grid;place-items:center}.pin.on{border-color:var(--ok)}
+.link{direction:ltr;word-break:break-all;font-size:12px;background:var(--bg);padding:8px;border-radius:8px;margin:6px 0}
+.sw{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
+#toast{position:fixed;bottom:80px;inset-inline:0;margin:auto;width:max-content;max-width:90%;background:#111;color:#fff;padding:10px 16px;border-radius:12px;z-index:9999;display:none}
+</style>
+</head>
+<body>
+<div id="root"></div><div id="toast"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// نصوص الواجهة في مكان واحد — أضف X_en لاحقًا وبدّل بينهما
+const X={app:'دار',tag:'اعرف أين عائلتك، بأمان',email:'البريد الإلكتروني',send:'أرسل الرمز',codeSent:'أرسلنا رمزًا من 6 أرقام إلى بريدك',code:'رمز التحقق',login:'دخول',
+map:'الخريطة',family:'العائلة',invites:'الدعوات',profile:'ملفي',search:'ابحث عن مكان…',inviteTo:'دعوة إلى',join:'انضم إلى العائلة',
+off:'المشاركة متوقفة',online:'متصل',offline:'غير متصل',newFam:'عائلة جديدة',famName:'اسم العائلة',create:'إنشاء',img:'صورة',members:'أعضاء',
+invite:'دعوة عضو',manage:'إدارة العائلة',save:'حفظ',del:'حذف العائلة',remove:'إزالة',owner:'المالك',createLink:'إنشاء رابط دعوة',
+single:'استخدام واحد فقط',copy:'نسخ رابط الدعوة',copied:'تم نسخ الرابط',revoke:'إلغاء',uses:'مرات الاستخدام',expIn:'ينتهي بعد',min:'د',ownerOnly:'الدعوات يديرها مالك العائلة فقط',
+noInv:'لا توجد روابط نشطة',name:'الاسم',theme:'الوضع الداكن',share:'مشاركة موقعي مع هذه العائلة',leave:'مغادرة العائلة',logout:'تسجيل الخروج',
+geoErr:'تعذّر الوصول إلى موقعك',sure:'هل أنت متأكد؟',nofam:'أنشئ عائلتك الأولى ثم أرسل رابط الدعوة لأفرادها',now:'الآن',ago:'قبل',h:'س',d:'يوم'};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const S={tab:'map',fams:[],fid:localStorage.fid||'',fam:null,inv:[],img:null};
+let map,wid=null,last=0;const mk={};
+const th=()=>localStorage.th||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+const setTh=t=>{localStorage.th=t;document.documentElement.dataset.t=t};setTh(th());
+async function api(m,p,b){const r=await fetch('/api'+p,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'خطأ');return j}
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',3000)}
+const hue=id=>`hsl(${parseInt(id.replace(/-/g,'').slice(0,6),16)%360} 55% 42%)`;
+const av=(m,s=44)=>m.avatar?`<img class=av src="${m.avatar}" style="width:${s}px;height:${s}px">`:`<span class=av style="width:${s}px;height:${s}px;background:${hue(m.id)};font-size:${s/2.2}px">${esc([...(m.name||'?')][0])}</span>`;
+const ago=t=>{if(!t)return'—';const s=(Date.now()-t)/1e3;return s<60?X.now:s<3600?`${X.ago} ${s/60|0} ${X.min}`:s<86400?`${X.ago} ${s/3600|0} ${X.h}`:`${X.ago} ${s/86400|0} ${X.d}`};
+const isOn=m=>m.sharing&&m.updated_at&&Date.now()-m.updated_at<3e5;
+const status=m=>!m.sharing?X.off:isOn(m)?X.online:X.offline;
+const cur=()=>S.fams.find(f=>f.id===S.fid);
+function pick(cb){const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>{const f=i.files[0];if(!f)return;const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=128;const s=Math.min(im.width,im.height);c.getContext('2d').drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,128,128);cb(c.toDataURL('image/jpeg',.8))};im.src=URL.createObjectURL(f.slice?f:f)};i.click()}
+
+// ---------- الدخول ----------
+function authForm(el,after){
+  el.innerHTML=`<input id=em type=email dir=ltr placeholder="${X.email}" autocomplete=email><button id=go class=btn style=width:100%>${X.send}</button>`;
+  $('#go').onclick=async()=>{try{const em=$('#em').value,r=await api('POST','/auth/request',{email:em});
+    el.innerHTML=`<p>${X.codeSent}</p>${r.devCode?`<p class=mu>DEV: ${esc(r.devCode)}</p>`:''}<input id=cd dir=ltr inputmode=numeric maxlength=6 placeholder="${X.code}" autocomplete=one-time-code><button id=ok class=btn style=width:100%>${X.login}</button>`;
+    $('#ok').onclick=async()=>{try{await api('POST','/auth/verify',{email:em,code:$('#cd').value});after()}catch(e){toast(e.message)}}}catch(e){toast(e.message)}};
+}
+function authView(){$('#root').innerHTML=`<div class=center><div class=card><h2>${X.app}</h2><p class=mu>${X.tag}</p><div id=fx></div></div></div>`;authForm($('#fx'),boot)}
+async function joinView(){
+  let f;try{f=await api('GET','/join/'+sessionStorage.jt)}catch(e){sessionStorage.removeItem('jt');toast(e.message);return S.me?boot():authView()}
+  $('#root').innerHTML=`<div class=center><div class=card>${av({id:'0',name:f.name,avatar:f.image},88)}<h2>${X.inviteTo} ${esc(f.name)}</h2><div id=jx></div></div></div>`;
+  if(S.me){$('#jx').innerHTML=`<button class=btn id=jn style=width:100%>${X.join}</button>`;
+    $('#jn').onclick=async()=>{try{const r=await api('POST','/join/'+sessionStorage.jt);sessionStorage.removeItem('jt');S.fid=r.familyId;boot()}catch(e){toast(e.message)}}}
+  else authForm($('#jx'),boot);
+}
+
+// ---------- الهيكل ----------
+function shell(){
+  $('#root').innerHTML=`<main><div id=v-map class=view><div id=map></div><div class=search><input id=q placeholder="${X.search}"><div id=res></div></div><div id=chips class=chips></div></div><div id=v-page class="view page"></div></main><nav>${[['map','🗺️'],['family','👨‍👩‍👧'],['invites','🔗'],['profile','👤']].map(([k,i])=>`<button data-a=tab data-id=${k}><i>${i}</i>${X[k]}</button>`).join('')}</nav>`;
+  map=L.map('map',{zoomControl:false,attributionControl:true}).setView([25,20],2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+  L.control.zoom({position:'topright'}).addTo(map);
+  $('#q').onkeydown=async e=>{if(e.key!=='Enter'||!e.target.value.trim())return;
+    try{const r=await(await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ar&q='+encodeURIComponent(e.target.value))).json();
+    shell.r=r;$('#res').innerHTML=r.map((p,i)=>`<div data-a=pl data-id=${i}>${esc(p.display_name)}</div>`).join('')}catch{toast('تعذّر البحث')}};
+}
+function tab(k){S.tab=k;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.id===k));
+  const pg=$('#v-page');$('#v-map').style.display=k==='map'?'block':'none';pg.style.display=k==='map'?'none':'block';
+  if(k==='map')setTimeout(()=>map.invalidateSize(),50);else renderPage()}
+async function renderPage(){const pg=$('#v-page');
+  if(S.tab==='invites'&&cur()?.role==='owner'){try{S.inv=(await api('GET','/families/'+S.fid+'/invites')).invites}catch{}}
+  pg.innerHTML={family:pgFamily,invites:pgInvites,profile:pgProfile}[S.tab]()}
+const newFam=()=>`<div class=card><h3>${X.newFam}</h3><p class=mu>${X.nofam}</p><input id=nn maxlength=60 placeholder="${X.famName}"><div class=row><button class="btn alt" data-a=fimg>${X.img}${S.img?' ✓':''}</button><button class=btn data-a=create>${X.create}</button></div></div>`;
+function pgFamily(){const c=cur(),own=c?.role==='owner';let h='';
+  if(S.fams.length>1)h+=`<select id=fs>${S.fams.map(x=>`<option value="${x.id}" ${x.id===S.fid?'selected':''}>${esc(x.name)}</option>`).join('')}</select>`;
+  if(!c||S.nf)return h+newFam();
+  h+=`<div class="card hdr">${av({id:c.id,name:c.name,avatar:c.image},64)}<div><h2>${esc(c.name)}</h2><span class=mu>${c.n} ${X.members}</span></div></div><div class=row><button class=btn data-a=invite>${X.invite}</button>${own?`<button class="btn alt" data-a=manage>${X.manage}</button>`:''}</div>`;
+  if(own&&S.mg)h+=`<div class=card><input id=fn maxlength=60 value="${esc(c.name)}"><div class=row><button class=btn data-a=savefam>${X.save}</button><button class="btn alt" data-a=famimg>${X.img}</button><button class="btn danger" data-a=delfam>${X.del}</button></div></div>`;
+  h+=`<div class=card>${(S.fam?.members||[]).map(m=>`<div class=mrow data-a=fly data-id=${m.id}>${av(m)}<div class=grow><b>${esc(m.name)}</b> ${m.role==='owner'?`<small class=badge>${X.owner}</small>`:''}<div class=mu>${status(m)} · ${ago(m.updated_at)}${m.battery!=null?` · 🔋${m.battery}%`:''}</div></div>${own&&S.mg&&m.role!=='owner'?`<button class="btn danger sm" data-a=rm data-id=${m.id}>${X.remove}</button>`:''}</div>`).join('')}</div><button class="btn alt" data-a=nf>+ ${X.newFam}</button>`;
+  return h}
+function pgInvites(){const c=cur();if(!c)return newFam();
+  if(c.role!=='owner')return`<div class=card><h3>${X.inviteTo} ${esc(c.name)}</h3><p class=mu>${X.ownerOnly}</p></div>`;
+  return`<div class=card><h3>${X.inviteTo} ${esc(c.name)}</h3><label class=sw><span>${X.single}</span><input type=checkbox id=su style=width:auto></label><button class=btn style=width:100% data-a=mk>${X.createLink}</button></div>`+
+  (S.inv.length?S.inv.map(i=>`<div class=card><div class=link>${esc(i.link)}</div><div class=mu>${X.expIn} ${Math.max(1,Math.ceil((i.expires_at-Date.now())/6e4))} ${X.min} · ${X.uses}: ${i.uses}${i.single_use?' · '+X.single:''}</div><div class=row><button class=btn data-a=copy data-id="${esc(i.link)}">${X.copy}</button><button class="btn danger" data-a=revoke data-id=${i.id}>${X.revoke}</button></div></div>`).join(''):`<p class=mu>${X.noInv}</p>`)}
+function pgProfile(){const c=cur(),u=S.me;
+  return`<div class="card hdr" data-a=avatar style=cursor:pointer>${av(u,64)}<div><b>${esc(u.name)}</b><div class=mu dir=ltr>${esc(u.email)}</div></div></div>
+<div class=card><input id=pn maxlength=40 value="${esc(u.name)}" placeholder="${X.name}"><button class=btn style=width:100% data-a=saveprof>${X.save}</button></div>
+<div class=card>${c?`<label class=sw><span>${X.share}</span><input type=checkbox style=width:auto data-a=share ${c.sharing?'checked':''}></label>`:''}<label class=sw><span>${X.theme}</span><input type=checkbox style=width:auto data-a=theme ${th()==='dark'?'checked':''}></label></div>
+${c&&c.role!=='owner'?`<button class="btn alt" style=width:100%;margin-bottom:8px data-a=leave>${X.leave}</button>`:''}<button class="btn danger" style=width:100% data-a=logout>${X.logout}</button>`}
+
+// ---------- الخريطة ----------
+const popup=m=>`<b>${esc(m.name)}</b><br>${status(m)}<br>${ago(m.updated_at)}${m.battery!=null?`<br>🔋 ${m.battery}%`:''}`;
+function markers(){if(!map)return;const ms=(S.fam?.members||[]).filter(m=>m.lat!=null),ids=new Set(ms.map(m=>m.id));
+  for(const id in mk)if(!ids.has(id)){mk[id].remove();delete mk[id]}
+  const first=!Object.keys(mk).length&&ms.length;
+  ms.forEach(m=>{const ic=L.divIcon({className:'',html:`<div class="pin ${isOn(m)?'on':''}">${av(m,38)}</div>`,iconSize:[46,46],iconAnchor:[23,23]});
+    if(mk[m.id])mk[m.id].setLatLng([m.lat,m.lng]).setIcon(ic).setPopupContent(popup(m));else mk[m.id]=L.marker([m.lat,m.lng],{icon:ic}).addTo(map).bindPopup(popup(m))});
+  if(first)map.fitBounds(ms.map(m=>[m.lat,m.lng]),{maxZoom:15,padding:[70,70]});
+  $('#chips').innerHTML=(S.fam?.members||[]).map(m=>`<div class="chip ${m.lat==null?'dim':''}" data-a=fly data-id=${m.id}>${av(m,32)}<span>${esc(m.name)}</span></div>`).join('')}
+function fly(id){const m=(S.fam?.members||[]).find(x=>x.id===id);if(!m||m.lat==null)return toast(X.off);tab('map');map.flyTo([m.lat,m.lng],16);mk[id]?.openPopup()}
+function geo(){if(!S.fams.some(f=>f.sharing)){if(wid!=null)navigator.geolocation.clearWatch(wid);wid=null;return}
+  if(wid!=null||!navigator.geolocation)return;
+  wid=navigator.geolocation.watchPosition(async p=>{if(Date.now()-last<15e3)return;last=Date.now();let b=null;try{b=Math.round((await navigator.getBattery()).level*100)}catch{}
+    api('POST','/location',{lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy,battery:b}).catch(()=>{})},()=>toast(X.geoErr),{enableHighAccuracy:true,maximumAge:1e4})}
+
+async function load(){S.fams=(await api('GET','/families')).families;if(!S.fams.find(f=>f.id===S.fid))S.fid=S.fams[0]?.id||'';localStorage.fid=S.fid;
+  S.fam=S.fid?await api('GET','/families/'+S.fid):null;markers();geo();
+  if(S.tab!=='map'&&!document.activeElement?.matches('input'))renderPage()}
+
+// ---------- الأحداث ----------
+const A={
+  tab:id=>tab(id),
+  pl:i=>{const p=shell.r[i];$('#res').innerHTML='';map.flyTo([+p.lat,+p.lon],14)},
+  fly:id=>fly(id),
+  nf:()=>{S.nf=true;renderPage()},
+  fimg:()=>pick(d=>{S.img=d;renderPage()}),
+  create:async()=>{try{const r=await api('POST','/families',{name:$('#nn').value,image:S.img});S.img=null;S.nf=false;S.fid=r.id;await load();renderPage()}catch(e){toast(e.message)}},
+  manage:()=>{S.mg=!S.mg;renderPage()},
+  savefam:async()=>{try{await api('PATCH','/families/'+S.fid,{name:$('#fn').value});await load()}catch(e){toast(e.message)}},
+  famimg:()=>pick(async d=>{await api('PATCH','/families/'+S.fid,{image:d});load()}),
+  delfam:async()=>{if(confirm(X.sure)){await api('DELETE','/families/'+S.fid);S.mg=false;load()}},
+  rm:async id=>{if(confirm(X.sure)){await api('DELETE',`/families/${S.fid}/members/${id}`);load()}},
+  invite:()=>tab('invites'),
+  mk:async()=>{try{const r=await api('POST',`/families/${S.fid}/invites`,{singleUse:$('#su').checked});await renderPage();A.copy(r.link)}catch(e){toast(e.message)}},
+  copy:async l=>{try{await navigator.clipboard.writeText(l);toast(X.copied)}catch{prompt(X.copy,l)}},
+  revoke:async id=>{await api('DELETE',`/families/${S.fid}/invites/${id}`);renderPage()},
+  avatar:()=>pick(async d=>{S.me=(await api('PATCH','/me',{avatar:d})).user;renderPage()}),
+  saveprof:async()=>{try{S.me=(await api('PATCH','/me',{name:$('#pn').value})).user;await load();toast('✓')}catch(e){toast(e.message)}},
+  share:async()=>{const on=!cur().sharing;try{await api('POST',`/families/${S.fid}/sharing`,{on});await load();if(on&&!navigator.geolocation)toast(X.geoErr)}catch(e){toast(e.message)}},
+  theme:()=>{setTh(th()==='dark'?'light':'dark')},
+  leave:async()=>{if(confirm(X.sure)){await api('DELETE',`/families/${S.fid}/members/${S.me.id}`);S.fid='';await load();renderPage()}},
+  logout:async()=>{await api('POST','/auth/logout');location.reload()}
+};
+document.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t||t.tagName==='INPUT'&&t.type!=='checkbox'&&t.dataset.a!=='share')return;
+  if(t.type==='checkbox'&&t.dataset.a==='copy')return;A[t.dataset.a]?.(t.dataset.id)});
+document.addEventListener('change',e=>{if(e.target.id==='fs'){S.fid=e.target.value;S.nf=false;load()}});
+
+async function boot(){
+  const m=/^\/join\/([\w-]+)$/.exec(location.pathname);if(m){sessionStorage.jt=m[1];history.replaceState(null,'','/')}
+  try{S.me=(await api('GET','/me')).user}catch{S.me=null}
+  if(sessionStorage.jt)return joinView();
+  if(!S.me)return authView();
+  shell();await load().catch(e=>toast(e.message));tab(S.fams.length?'map':'family');
+  clearInterval(boot.t);boot.t=setInterval(()=>load().catch(()=>{}),10000);
+}
+boot();
+</script>
+</body>
+</html>
